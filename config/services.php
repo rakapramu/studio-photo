@@ -46,4 +46,11 @@ return [
         'is_production' => env('MIDTRANS_IS_PRODUCTION', false),
     ],
 
+    'studio' => [
+        'latitude' => env('STUDIO_LATITUDE', -6.799908779279243),
+        'longitude' => env('STUDIO_LONGITUDE', 110.82845312523607),
+        'fuel_cost_per_km' => env('FUEL_COST_PER_KM', 2000),
+        'accommodation_per_night' => env('ACCOMMODATION_PER_NIGHT', 500000),
+    ],
+
 ];

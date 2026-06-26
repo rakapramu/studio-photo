@@ -121,7 +121,8 @@ class WatermarkService
 
         // 2. Draw Text Watermark (Premium typography using TTF, fallback to built-in GD font)
         $fontPath = $this->getFontPath();
-        $watermarkText = "© RAKA PHOTO STUDIO - PREVIEW ONLY";
+        $studioName = strtoupper(\App\Models\Setting::getValue('studio_name', 'Raka Photo Studio'));
+        $watermarkText = "© {$studioName} - PREVIEW ONLY";
 
         if ($fontPath && function_exists('imagettftext')) {
             // Dynamic Font Size (3.5% of width)

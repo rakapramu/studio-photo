@@ -20,7 +20,25 @@ use Inertia\Inertia;
 
 // Public Welcome Route
 Route::get('/', function () {
+    $packages = \App\Models\Package::where('is_active', true)->orderBy('price', 'asc')->get();
+    
+    $gallery = \App\Models\BookingPhoto::whereHas('booking', function ($query) {
+        $query->where('status', 'completed');
+    })
+    ->orderBy('created_at', 'desc')
+    ->limit(12)
+    ->get()
+    ->map(function ($photo) {
+        return [
+            'id' => $photo->id,
+            'url' => '/storage/' . ($photo->edited_file_path ?? $photo->watermarked_file_path ?? $photo->file_path),
+            'caption' => $photo->booking->package->name ?? 'Sesi Foto',
+        ];
+    });
+
     return Inertia::render('Welcome', [
+        'packages' => $packages,
+        'gallery' => $gallery,
         'laravelVersion' => ltrim(app()->version(), 'v'),
         'phpVersion' => PHP_VERSION,
     ]);
@@ -84,6 +102,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/admin/equipments/{equipment}', [EquipmentController::class, 'destroy'])->name('admin.equipments.destroy');
 
     // Crew Management (Admin)
+    Route::get('/admin/crews/kanban', [CrewController::class, 'kanban'])->name('admin.crews.kanban');
     Route::get('/admin/crews', [CrewController::class, 'index'])->name('admin.crews.index');
     Route::post('/admin/crews', [CrewController::class, 'store'])->name('admin.crews.store');
     Route::put('/admin/crews/{crew}', [CrewController::class, 'update'])->name('admin.crews.update');
@@ -100,4 +119,16 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/bookings/{booking}/gallery/upload', [AdminGalleryController::class, 'upload'])->name('admin.bookings.gallery.upload');
     Route::delete('/admin/bookings/gallery/{photo}', [AdminGalleryController::class, 'destroy'])->name('admin.bookings.gallery.destroy');
     Route::post('/admin/bookings/gallery/{photo}/upload-edited', [AdminGalleryController::class, 'uploadEdited'])->name('admin.bookings.gallery.upload_edited');
+
+    // Company Settings (Admin)
+    Route::get('/admin/settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('admin.settings.index');
+    Route::put('/admin/settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('admin.settings.update');
+
+    // CRM & Lifecycle Marketing (Admin)
+    Route::get('/admin/crm', [\App\Http\Controllers\Admin\CRMController::class, 'index'])->name('admin.crm.index');
+    Route::post('/admin/crm/rules', [\App\Http\Controllers\Admin\CRMController::class, 'storeRule'])->name('admin.crm.rules.store');
+    Route::put('/admin/crm/rules/{rule}', [\App\Http\Controllers\Admin\CRMController::class, 'updateRule'])->name('admin.crm.rules.update');
+    Route::delete('/admin/crm/rules/{rule}', [\App\Http\Controllers\Admin\CRMController::class, 'destroyRule'])->name('admin.crm.rules.destroy');
+    Route::post('/admin/crm/schedules/{schedule}/send', [\App\Http\Controllers\Admin\CRMController::class, 'sendNow'])->name('admin.crm.schedules.send');
+    Route::post('/admin/crm/schedules/run-cron', [\App\Http\Controllers\Admin\CRMController::class, 'runSimulatedCron'])->name('admin.crm.schedules.run-cron');
 });

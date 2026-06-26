@@ -144,7 +144,7 @@ const simulateWebhookPayment = (type) => {
         <div class="py-2">
             <!-- Header -->
             <div class="text-center mb-6">
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-violet-100 text-violet-850 dark:bg-violet-950/40 dark:text-violet-300 mb-2">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300 mb-2">
                     Portal Reservasi & Klien
                 </span>
                 <h2 class="text-2xl font-extrabold text-slate-900 dark:text-slate-100">
@@ -177,25 +177,51 @@ const simulateWebhookPayment = (type) => {
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <p class="text-xs text-slate-450 dark:text-slate-400">Paket Terpilih</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Paket Terpilih</p>
                             <p class="font-bold text-slate-800 dark:text-slate-200 text-base">
                                 {{ booking.package?.name || 'Paket Kustom' }}
                             </p>
                             <p class="text-xs text-slate-400 mt-0.5">
                                 Durasi: {{ booking.package?.duration_minutes }} Menit
                             </p>
+                            <span class="inline-flex items-center px-2 py-0.5 mt-2 rounded text-[10px] font-bold"
+                                :class="booking.is_outdoor
+                                    ? 'bg-violet-100 text-violet-800 dark:bg-violet-950/40 dark:text-violet-400'
+                                    : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-350'"
+                            >
+                                {{ booking.is_outdoor ? '🌳 SESI OUTDOOR' : '🏠 SESI INDOOR (STUDIO)' }}
+                            </span>
                         </div>
                         
                         <div>
-                            <p class="text-xs text-slate-450 dark:text-slate-400">Total Harga</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Total Harga</p>
                             <p class="font-extrabold text-violet-600 dark:text-violet-400 text-lg">
                                 {{ formatIDR(booking.total_price) }}
                             </p>
+                            <div v-if="booking.is_outdoor && parseFloat(booking.travel_surcharge) > 0" class="mt-1 text-[11px] text-slate-600 dark:text-slate-405 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 space-y-1">
+                                <p class="font-semibold text-slate-700 dark:text-slate-300">Rincian Surcharge Outdoor:</p>
+                                <p class="flex justify-between">
+                                    <span>Bensin (PP: {{ booking.travel_distance * 2 }} KM):</span>
+                                    <span>{{ formatIDR(booking.fuel_cost) }}</span>
+                                </p>
+                                <p class="flex justify-between" v-if="parseFloat(booking.toll_cost) > 0">
+                                    <span>Tol Kru:</span>
+                                    <span>{{ formatIDR(booking.toll_cost) }}</span>
+                                </p>
+                                <p class="flex justify-between" v-if="parseFloat(booking.accommodation_cost) > 0">
+                                    <span>Akomodasi Kru:</span>
+                                    <span>{{ formatIDR(booking.accommodation_cost) }}</span>
+                                </p>
+                                 <p class="flex justify-between font-bold border-t border-slate-200 dark:border-slate-800 pt-1 text-slate-800 dark:text-slate-200">
+                                     <span>Total Surcharge:</span>
+                                     <span>{{ formatIDR(booking.travel_surcharge) }}</span>
+                                 </p>
+                            </div>
                         </div>
                         
-                        <div class="border-t border-slate-100 dark:border-slate-800/80 pt-3 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-slate-650 dark:text-slate-350">
+                        <div class="border-t border-slate-100 dark:border-slate-800/80 pt-3 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-slate-600 dark:text-slate-300">
                             <div>
-                                <p class="text-xs text-slate-450 dark:text-slate-400">Tanggal & Waktu</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Tanggal & Waktu</p>
                                 <p class="font-medium mt-0.5">
                                     📅 {{ new Date(booking.booking_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) }}
                                 </p>
@@ -204,7 +230,7 @@ const simulateWebhookPayment = (type) => {
                                 </p>
                             </div>
                             <div>
-                                <p class="text-xs text-slate-450 dark:text-slate-400">Lokasi Pelaksanaan</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Lokasi Pelaksanaan</p>
                                 <p class="font-medium mt-0.5">📍 {{ booking.location }}</p>
                             </div>
                         </div>
@@ -261,7 +287,7 @@ const simulateWebhookPayment = (type) => {
                             <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mt-0.5 border"
                                 :class="dpPayment?.status === 'paid' 
                                     ? 'bg-emerald-500 border-emerald-500 text-white' 
-                                    : 'bg-slate-100 dark:bg-slate-800 border-slate-350 dark:border-slate-700 text-slate-600 dark:text-slate-350'"
+                                    : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300'"
                             >
                                 <span v-if="dpPayment?.status === 'paid'">✓</span>
                                 <span v-else>1</span>
@@ -269,7 +295,7 @@ const simulateWebhookPayment = (type) => {
                             
                             <div class="flex-1">
                                 <div class="flex items-center justify-between">
-                                    <h4 class="font-bold text-sm text-slate-800 dark:text-slate-250">
+                                    <h4 class="font-bold text-sm text-slate-800 dark:text-slate-200">
                                         Tahap 1: Uang Muka (DP 30%)
                                     </h4>
                                     <span 
@@ -313,7 +339,7 @@ const simulateWebhookPayment = (type) => {
                             <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mt-0.5 border"
                                 :class="finalPayment?.status === 'paid' 
                                     ? 'bg-emerald-500 border-emerald-500 text-white' 
-                                    : 'bg-slate-100 dark:bg-slate-800 border-slate-350 dark:border-slate-700 text-slate-600 dark:text-slate-350'"
+                                    : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300'"
                             >
                                 <span v-if="finalPayment?.status === 'paid'">✓</span>
                                 <span v-else>2</span>
@@ -321,7 +347,7 @@ const simulateWebhookPayment = (type) => {
                             
                             <div class="flex-1">
                                 <div class="flex items-center justify-between">
-                                    <h4 class="font-bold text-sm text-slate-800 dark:text-slate-250"
+                                    <h4 class="font-bold text-sm text-slate-800 dark:text-slate-205"
                                         :class="dpPayment?.status !== 'paid' ? 'opacity-50' : ''"
                                     >
                                         Tahap 2: Pelunasan Sisa Kontrak (70%)
@@ -367,24 +393,24 @@ const simulateWebhookPayment = (type) => {
             
             <!-- 4. Developer Webhook Simulation Tools -->
             <div v-if="isLocalEnv" class="mt-6 p-5 border border-dashed border-violet-300 dark:border-violet-800 rounded-2xl bg-violet-50/20 dark:bg-violet-950/10 text-center transition-all">
-                <p class="text-xs font-bold text-violet-850 dark:text-violet-300 tracking-wider uppercase mb-1">
+                <p class="text-xs font-bold text-violet-750 dark:text-violet-300 tracking-wider uppercase mb-1">
                     🧑‍💻 Developer Sandbox Tools
                 </p>
-                <p class="text-[11px] text-slate-450 dark:text-slate-400 mb-4 leading-relaxed">
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-4 leading-relaxed">
                     Gunakan tombol di bawah ini untuk mensimulasikan callback webhook lunas dari Midtrans secara instan tanpa ngrok.
                 </p>
                 <div class="flex flex-wrap justify-center gap-3">
                     <button 
                         @click="simulateWebhookPayment('down_payment')"
                         :disabled="isPaying || dpPayment?.status === 'paid'"
-                        class="px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-105 disabled:opacity-40 text-emerald-850 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 dark:text-emerald-300 text-xs font-semibold rounded-lg border border-emerald-250/30 dark:border-emerald-900/30 transition-all cursor-pointer"
+                        class="px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-40 text-emerald-700 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 dark:text-emerald-300 text-xs font-semibold rounded-lg border border-emerald-200/30 dark:border-emerald-900/30 transition-all cursor-pointer"
                     >
                         ✓ Simulasikan Lunas DP (30%)
                     </button>
                     <button 
                         @click="simulateWebhookPayment('final_payment')"
                         :disabled="isPaying || dpPayment?.status !== 'paid' || finalPayment?.status === 'paid'"
-                        class="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-105 disabled:opacity-40 text-blue-850 dark:bg-blue-950/30 dark:hover:bg-blue-950/50 dark:text-blue-300 text-xs font-semibold rounded-lg border border-blue-250/30 dark:border-blue-900/30 transition-all cursor-pointer"
+                        class="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 disabled:opacity-40 text-blue-700 dark:bg-blue-950/30 dark:hover:bg-blue-950/50 dark:text-blue-300 text-xs font-semibold rounded-lg border border-blue-200/30 dark:border-blue-900/30 transition-all cursor-pointer"
                     >
                         🏆 Simulasikan Lunas Pelunasan (70%)
                     </button>

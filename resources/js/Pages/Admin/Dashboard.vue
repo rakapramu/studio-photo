@@ -1,6 +1,6 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import { ref, computed, nextTick } from 'vue';
 import AdminLayout from '../../Layouts/AdminLayout.vue';
 
 const props = defineProps({
@@ -127,14 +127,101 @@ const isToday = (dateString) => {
 const isDetailModalOpen = ref(false);
 const activeBooking = ref(null);
 
-const openDetailModal = (booking) => {
+let dashboardMap = null;
+let dbStudioMarker = null;
+let dbDestMarker = null;
+let dbRoutePolyline = null;
+
+const openDetailModal = async (booking) => {
     activeBooking.value = booking;
     isDetailModalOpen.value = true;
+    
+    if (booking.is_outdoor && booking.location_latitude && booking.location_longitude) {
+        await nextTick();
+        initDashboardMap();
+    }
 };
 
 const closeDetailModal = () => {
     isDetailModalOpen.value = false;
     activeBooking.value = null;
+    if (dashboardMap) {
+        dashboardMap.remove();
+        dashboardMap = null;
+    }
+    dbStudioMarker = null;
+    dbDestMarker = null;
+    dbRoutePolyline = null;
+};
+
+const initDashboardMap = () => {
+    if (!activeBooking.value) return;
+    const booking = activeBooking.value;
+    
+    const pageObj = usePage();
+    const studioLat = parseFloat(pageObj.props.settings?.studio_latitude || -6.597629);
+    const studioLng = parseFloat(pageObj.props.settings?.studio_longitude || 106.799568);
+    const studioName = pageObj.props.settings?.studio_name || 'Studio Photo Raka';
+    const studioCoords = [studioLat, studioLng];
+    
+    const destLat = parseFloat(booking.location_latitude);
+    const destLng = parseFloat(booking.location_longitude);
+    
+    if (!destLat || !destLng) return;
+    
+    dashboardMap = L.map('dashboard-detail-map').setView(studioCoords, 12);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(dashboardMap);
+    
+    const studioIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
+    const destIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
+    dbStudioMarker = L.marker(studioCoords, { icon: studioIcon }).addTo(dashboardMap)
+        .bindPopup(`<b>${studioName}</b><br>Titik Keberangkatan`);
+        
+    dbDestMarker = L.marker([destLat, destLng], { icon: destIcon }).addTo(dashboardMap)
+        .bindPopup(`<b>Lokasi Foto Klien</b><br>${booking.location}`).openPopup();
+        
+    drawDashboardRoute(studioCoords, [destLat, destLng]);
+};
+
+const drawDashboardRoute = async (start, end) => {
+    try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+            const route = data.routes[0];
+            const coordinates = route.geometry.coordinates.map(c => [c[1], c[0]]);
+            
+            dbRoutePolyline = L.polyline(coordinates, { color: '#6366f1', weight: 5, opacity: 0.7 }).addTo(dashboardMap);
+            
+            const bounds = L.latLngBounds([start, end]);
+            dashboardMap.fitBounds(bounds, { padding: [40, 40] });
+        } else {
+            dbRoutePolyline = L.polyline([start, end], { color: '#ef4444', weight: 4, dashArray: '5, 10' }).addTo(dashboardMap);
+        }
+    } catch (e) {
+        console.error('Error drawing dashboard map route:', e);
+    }
 };
 
 // Helpers for modal details
@@ -351,7 +438,10 @@ const formatLocalDate = (dateStr) => {
                                     class="border-b border-slate-100 dark:border-slate-800/80 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors"
                                 >
                                     <td class="py-4">
-                                        <p class="font-semibold text-slate-800 dark:text-slate-100">{{ booking.client_name }}</p>
+                                        <div class="flex items-center space-x-1.5">
+                                            <p class="font-semibold text-slate-800 dark:text-slate-100">{{ booking.client_name }}</p>
+                                            <span v-if="booking.is_outdoor" class="inline-flex px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-950/40 text-[9px] font-bold text-violet-600 dark:text-violet-400">🌳 OUTDOOR</span>
+                                        </div>
                                         <p class="text-xs text-slate-500 dark:text-slate-400">{{ booking.package?.name || 'Paket Kustom' }}</p>
                                     </td>
                                     <td class="py-4">
@@ -360,6 +450,10 @@ const formatLocalDate = (dateStr) => {
                                     </td>
                                     <td class="py-4">
                                         <p class="text-slate-800 dark:text-slate-100">📍 {{ booking.location }}</p>
+                                        <div v-if="booking.is_outdoor" class="text-[10px] text-slate-500 mt-0.5">
+                                            Jarak: <span class="font-semibold text-slate-700 dark:text-slate-350">{{ booking.travel_distance }} km</span> | 
+                                            Surcharge: <span class="font-semibold text-violet-600 dark:text-violet-400">{{ formatIDR(booking.travel_surcharge) }}</span>
+                                        </div>
                                     </td>
                                     <td class="py-4 text-right">
                                         <span 
@@ -505,6 +599,39 @@ const formatLocalDate = (dateStr) => {
                             </span>
                         </div>
                         <p v-else class="text-xs text-slate-400 italic">Belum ada peralatan yang dialokasikan.</p>
+                    </div>
+
+                    <!-- Outdoor Details & Map -->
+                    <div v-if="activeBooking.is_outdoor" class="space-y-3 pt-2 border-t border-slate-150 dark:border-slate-800/80">
+                        <div class="p-3 bg-violet-500/5 dark:bg-violet-950/20 border border-violet-500/10 dark:border-violet-800/20 rounded-xl text-xs space-y-1.5">
+                            <p class="font-bold text-slate-805 dark:text-slate-200 border-b border-slate-150 dark:border-slate-800/80 pb-1 mb-1.5 uppercase tracking-wide">🌳 LAYANAN OUTDOOR & SURCHARGE PERJALANAN</p>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Jarak Tempuh</span>
+                                <span class="font-semibold text-slate-800 dark:text-slate-200">{{ activeBooking.travel_distance }} KM</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Bensin (PP: {{ activeBooking.travel_distance * 2 }} KM)</span>
+                                <span class="font-semibold text-slate-800 dark:text-slate-200">{{ formatIDR(activeBooking.fuel_cost) }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Biaya Tol</span>
+                                <span class="font-semibold text-slate-800 dark:text-slate-200">{{ formatIDR(activeBooking.toll_cost) }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Biaya Akomodasi</span>
+                                <span class="font-semibold text-slate-800 dark:text-slate-200">{{ formatIDR(activeBooking.accommodation_cost) }}</span>
+                            </div>
+                            <div class="flex justify-between border-t border-dashed border-slate-200 dark:border-slate-800 pt-1.5 font-extrabold text-violet-600 dark:text-violet-400 text-sm">
+                                <span>Total Surcharge</span>
+                                <span>{{ formatIDR(activeBooking.travel_surcharge) }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Map Container -->
+                        <div v-if="activeBooking.location_latitude">
+                            <div id="dashboard-detail-map" class="h-40 rounded-xl border border-slate-200 dark:border-slate-800 relative z-10"></div>
+                            <p class="text-[9px] text-slate-400 mt-1">🔴 Pin Merah: Lokasi Sesi | 🟣 Pin Ungu: Studio</p>
+                        </div>
                     </div>
 
                     <!-- Notes -->

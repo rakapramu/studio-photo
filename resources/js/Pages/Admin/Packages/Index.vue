@@ -48,12 +48,30 @@ const activePackageId = ref(null);
 
 // Form init using Inertia useForm
 const form = useForm({
+    _method: 'POST',
     name: '',
     description: '',
     price: '',
     duration_minutes: '',
     is_active: true,
+    image: null,
 });
+
+// Image preview and input references
+const imagePreviewUrl = ref(null);
+const existingImageUrl = ref(null);
+const fileInputRef = ref(null);
+
+const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        form.image = file;
+        imagePreviewUrl.value = URL.createObjectURL(file);
+    } else {
+        form.image = null;
+        imagePreviewUrl.value = null;
+    }
+};
 
 // Currency formatting utility
 const formatIDR = (value) => {
@@ -70,6 +88,11 @@ const openCreateModal = () => {
     activePackageId.value = null;
     form.reset();
     form.clearErrors();
+    form._method = 'POST';
+    form.image = null;
+    imagePreviewUrl.value = null;
+    existingImageUrl.value = null;
+    if (fileInputRef.value) fileInputRef.value.value = '';
     isModalOpen.value = true;
 };
 
@@ -78,22 +101,30 @@ const openEditModal = (pkg) => {
     isEditMode.value = true;
     activePackageId.value = pkg.id;
     form.clearErrors();
+    form._method = 'PUT';
     form.name = pkg.name;
     form.description = pkg.description || '';
     form.price = pkg.price;
     form.duration_minutes = pkg.duration_minutes;
     form.is_active = pkg.is_active;
+    form.image = null;
+    imagePreviewUrl.value = null;
+    existingImageUrl.value = pkg.image_path ? '/storage/' + pkg.image_path : null;
+    if (fileInputRef.value) fileInputRef.value.value = '';
     isModalOpen.value = true;
 };
 
 // Submit form (Store or Update)
 const submit = () => {
     if (isEditMode.value) {
-        form.put(`/admin/packages/${activePackageId.value}`, {
+        // Use POST with method spoofing for file uploads in updates
+        form.post(`/admin/packages/${activePackageId.value}`, {
+            preserveScroll: true,
             onSuccess: () => closeModal(),
         });
     } else {
         form.post('/admin/packages', {
+            preserveScroll: true,
             onSuccess: () => closeModal(),
         });
     }
@@ -102,6 +133,9 @@ const submit = () => {
 const closeModal = () => {
     isModalOpen.value = false;
     form.reset();
+    imagePreviewUrl.value = null;
+    existingImageUrl.value = null;
+    if (fileInputRef.value) fileInputRef.value.value = '';
 };
 
 // Toggle status active/inactive
@@ -184,8 +218,14 @@ const deletePackage = (pkg) => {
                             class="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors"
                         >
                             <td class="px-6 py-4 font-semibold text-slate-800 dark:text-slate-100">
-                                <div class="w-full truncate block" :title="pkg.name">
-                                    {{ pkg.name }}
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-850 overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-800 flex items-center justify-center">
+                                        <img v-if="pkg.image_path" :src="'/storage/' + pkg.image_path" class="w-full h-full object-cover" alt="" />
+                                        <span v-else class="text-lg">🏷️</span>
+                                    </div>
+                                    <div class="truncate text-sm font-semibold" :title="pkg.name">
+                                        {{ pkg.name }}
+                                    </div>
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-slate-500 dark:text-slate-400">
@@ -294,6 +334,36 @@ const deletePackage = (pkg) => {
                         ></textarea>
                         <span v-if="form.errors.description" class="text-xs text-red-500 dark:text-red-400 mt-1 block">
                             {{ form.errors.description }}
+                        </span>
+                    </div>
+
+                    <!-- Package Image -->
+                    <div>
+                        <label for="pkg-image" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                            Gambar Paket Foto
+                        </label>
+                        <div class="flex items-center space-x-4">
+                            <!-- Image Preview -->
+                            <div class="w-16 h-16 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 overflow-hidden flex items-center justify-center flex-shrink-0">
+                                <img v-if="imagePreviewUrl" :src="imagePreviewUrl" class="w-full h-full object-cover" alt="" />
+                                <img v-else-if="existingImageUrl" :src="existingImageUrl" class="w-full h-full object-cover" alt="" />
+                                <span v-else class="text-2xl">📸</span>
+                            </div>
+                            <!-- File Input -->
+                            <div class="flex-grow">
+                                <input 
+                                    id="pkg-image" 
+                                    type="file" 
+                                    ref="fileInputRef"
+                                    accept="image/*"
+                                    @change="handleImageChange"
+                                    class="w-full text-xs text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-violet-50 file:text-violet-750 dark:file:bg-violet-950/40 dark:file:text-violet-400 hover:file:bg-violet-100 dark:hover:file:bg-violet-900/40 transition-all cursor-pointer"
+                                />
+                                <p class="text-[10px] text-slate-450 mt-1">Format: JPG, PNG, WEBP (Max 5MB)</p>
+                            </div>
+                        </div>
+                        <span v-if="form.errors.image" class="text-xs text-red-500 dark:text-red-400 mt-1 block">
+                            {{ form.errors.image }}
                         </span>
                     </div>
 

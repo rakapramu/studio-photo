@@ -39,23 +39,36 @@ class ContractController extends Controller
             $startTime = substr($booking->start_time, 0, 5);
             $endTime = substr($booking->end_time, 0, 5);
             $priceText = number_format($booking->total_price, 0, ',', '.');
+            $packagePriceText = number_format($booking->package->price, 0, ',', '.');
+            $surchargeText = number_format($booking->travel_surcharge, 0, ',', '.');
+
+            $studioName = \App\Models\Setting::getValue('studio_name', 'Photo Studio');
 
             $contractText = "SURAT PERJANJIAN KERJA (SPK)\n\n"
                 . "Perjanjian ini dibuat pada tanggal " . date('d-m-Y') . " antara:\n"
-                . "1. Nama: Photo Studio (Selaku penyedia jasa dokumentasi)\n"
+                . "1. Nama: {$studioName} (Selaku penyedia jasa dokumentasi)\n"
                 . "2. Nama Klien: {$booking->client_name} (Selaku pengguna jasa)\n\n"
                 . "Dengan ini kedua belah pihak sepakat untuk melakukan kerja sama dokumentasi dengan ketentuan:\n"
                 . "- Paket Sesi: {$booking->package->name}\n"
                 . "- Tanggal Pemotretan: {$formattedDate}\n"
                 . "- Waktu Sesi: {$startTime} - {$endTime} WIB\n"
-                . "- Lokasi: {$booking->location}\n"
-                . "- Total Nilai Kontrak: Rp {$priceText},-\n\n"
+                . "- Tipe Sesi: " . ($booking->is_outdoor ? "Outdoor (Luar Studio)" : "Indoor (di Studio)") . "\n"
+                . "- Lokasi: {$booking->location}\n";
+
+            if ($booking->is_outdoor) {
+                $contractText .= "- Jarak Tempuh: {$booking->travel_distance} KM\n"
+                    . "- Nilai Paket Sesi: Rp {$packagePriceText},-\n"
+                    . "- Biaya Tambahan Perjalanan: Rp {$surchargeText},-\n"
+                    . "  (Bensin: Rp " . number_format($booking->fuel_cost, 0, ',', '.') . ", Tol: Rp " . number_format($booking->toll_cost, 0, ',', '.') . ", Akomodasi: Rp " . number_format($booking->accommodation_cost, 0, ',', '.') . ")\n";
+            }
+
+            $contractText .= "- Total Nilai Kontrak: Rp {$priceText},-\n\n"
                 . "PASAL 1: PEMBAYARAN\n"
                 . "Klien wajib membayar uang muka (DP) sebesar 30% dari total kontrak setelah SPK ditandatangani untuk mengamankan slot jadwal. Pelunasan wajib diselesaikan paling lambat pada hari H pelaksanaan sebelum sesi foto dimulai.\n\n"
                 . "PASAL 2: PEMBATALAN & JADWAL ULANG\n"
                 . "Pembatalan oleh klien secara sepihak akan mengakibatkan uang muka (DP) hangus. Jadwal ulang (reschedule) diperbolehkan maksimal 1 kali dengan pemberitahuan minimal H-3 sebelum jadwal awal.\n\n"
                 . "PASAL 3: HAK CIPTA & KEPEMILIKAN GAMBAR\n"
-                . "Hak cipta gambar tetap berada pada Photo Studio. Klien diberikan hak guna gambar untuk kepentingan pribadi dan promosi non-komersil. Photo Studio berhak menggunakan foto untuk kepentingan portofolio dan promosi media sosial, kecuali jika klien meminta secara tertulis untuk menjaga privasi.";
+                . "Hak cipta gambar tetap berada pada {$studioName}. Klien diberikan hak guna gambar untuk kepentingan pribadi dan promosi non-komersil. {$studioName} berhak menggunakan foto untuk kepentingan portofolio dan promosi media sosial, kecuali jika klien meminta secara tertulis untuk menjaga privasi.";
 
             $contract = Contract::create([
                 'booking_id' => $booking->id,

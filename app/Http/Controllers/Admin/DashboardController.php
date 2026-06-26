@@ -22,7 +22,7 @@ class DashboardController extends Controller
             'confirmedBookings' => Booking::where('status', 'confirmed')->count(),
         ];
 
-        $recentBookings = Booking::with('package')
+        $recentBookings = Booking::with(['package', 'crews', 'equipments'])
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();

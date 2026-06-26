@@ -13,6 +13,7 @@ class Package extends Model
     protected $fillable = [
         'name',
         'description',
+        'image_path',
         'price',
         'duration_minutes',
         'is_active',
@@ -29,5 +30,21 @@ class Package extends Model
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    /**
+     * Get the lifecycle rules where this package is the source.
+     */
+    public function sourceRules(): HasMany
+    {
+        return $this->hasMany(LifecycleRule::class, 'source_package_id');
+    }
+
+    /**
+     * Get the lifecycle rules where this package is the target.
+     */
+    public function targetRules(): HasMany
+    {
+        return $this->hasMany(LifecycleRule::class, 'target_package_id');
     }
 }

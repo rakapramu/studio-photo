@@ -72,6 +72,10 @@ class BookingController extends Controller
             $booking->update([
                 'paid_amount' => $booking->total_price,
             ]);
+
+            if ($oldStatus !== 'completed') {
+                $this->scheduleMarketing($booking);
+            }
         }
 
         $waSent = true;
@@ -175,6 +179,47 @@ class BookingController extends Controller
             return back()->with('success', 'Kru dan alat penunjang sesi berhasil dialokasikan.');
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal menyimpan alokasi: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Automatically schedule marketing messages based on lifecycle rules.
+     */
+    protected function scheduleMarketing(Booking $booking): void
+    {
+        $booking->loadMissing('package');
+
+        $rules = \App\Models\LifecycleRule::where('source_package_id', $booking->package_id)
+            ->where('is_active', true)
+            ->get();
+
+        foreach ($rules as $rule) {
+            $targetPackage = $rule->targetPackage;
+            if (!$targetPackage) {
+                continue;
+            }
+
+            // Calculate scheduled date (booking_date + delay_days)
+            $baseDate = $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date) : now();
+            $scheduledAt = $baseDate->addDays($rule->delay_days);
+
+            // Replace template placeholders
+            $formattedPrice = 'Rp ' . number_format($targetPackage->price, 0, ',', '.');
+            $messageContent = str_replace(
+                ['{client_name}', '{source_package}', '{target_package}', '{target_price}'],
+                [$booking->client_name, $booking->package->name, $targetPackage->name, $formattedPrice],
+                $rule->message_template
+            );
+
+            \App\Models\MarketingSchedule::create([
+                'booking_id' => $booking->id,
+                'lifecycle_rule_id' => $rule->id,
+                'client_name' => $booking->client_name,
+                'client_phone' => $booking->client_phone,
+                'message_content' => $messageContent,
+                'scheduled_at' => $scheduledAt,
+                'status' => 'pending',
+            ]);
         }
     }
 }

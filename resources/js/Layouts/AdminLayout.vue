@@ -18,6 +18,9 @@ const navItems = [
     { name: 'Pengeluaran', url: '/admin/expenses', icon: '💸' },
     { name: 'Inventaris Alat', url: '/admin/equipments', icon: '📷' },
     { name: 'Kru & Staf', url: '/admin/crews', icon: '👥' },
+    { name: 'Jadwal Kru (Kanban)', url: '/admin/crews/kanban', icon: '📋' },
+    { name: 'CRM & Marketing', url: '/admin/crm', icon: '📣' },
+    { name: 'Pengaturan Usaha', url: '/admin/settings', icon: '⚙️' },
 ];
 
 const logout = () => {

@@ -33,9 +33,15 @@ class PackageController extends Controller
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
             'duration_minutes' => ['required', 'integer', 'min:1'],
+            'image' => ['nullable', 'image', 'max:5120'],
         ]);
 
-        Package::create($validated);
+        $data = $validated;
+        if ($request->hasFile('image')) {
+            $data['image_path'] = $request->file('image')->store('packages', 'public');
+        }
+
+        Package::create($data);
 
         return redirect()->route('admin.packages.index')->with('success', 'Paket foto berhasil ditambahkan.');
     }
@@ -45,15 +51,30 @@ class PackageController extends Controller
      */
     public function update(Request $request, Package $package): RedirectResponse
     {
+        // Support method spoofing for file uploads
+        if ($request->has('_method') && $request->input('_method') === 'PUT') {
+            $request->merge(['is_active' => filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN)]);
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
             'duration_minutes' => ['required', 'integer', 'min:1'],
             'is_active' => ['required', 'boolean'],
+            'image' => ['nullable', 'image', 'max:5120'],
         ]);
 
-        $package->update($validated);
+        $data = $validated;
+        if ($request->hasFile('image')) {
+            // Delete old image if exists
+            if ($package->image_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($package->image_path)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($package->image_path);
+            }
+            $data['image_path'] = $request->file('image')->store('packages', 'public');
+        }
+
+        $package->update($data);
 
         return redirect()->route('admin.packages.index')->with('success', 'Paket foto berhasil diperbarui.');
     }

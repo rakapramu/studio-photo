@@ -53,11 +53,64 @@ class DatabaseSeeder extends Seeder
                 'price' => 5000000.00,
                 'duration_minutes' => 480,
                 'is_active' => true,
+            ],
+            [
+                'name' => 'Maternity Portrait Session',
+                'description' => 'Abadikan momen kehamilan indah Anda dengan sesi foto maternity eksklusif. Termasuk kostum pilihan, 10 foto edit pasca-produksi, dan cetakan bingkai ukuran 12R.',
+                'price' => 850000.00,
+                'duration_minutes' => 90,
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Newborn & Baby Photography',
+                'description' => 'Sesi foto bayi baru lahir yang aman dan dipandu oleh spesialis bayi berpengalaman. Menyediakan berbagai properti lucu, kostum lembut, dan 15 foto edit terbaik.',
+                'price' => 1200000.00,
+                'duration_minutes' => 120,
+                'is_active' => true,
             ]
         ];
 
         foreach ($packages as $pkg) {
             Package::firstOrCreate(['name' => $pkg['name']], $pkg);
+        }
+
+        // Seed default lifecycle rules
+        $wedding = Package::where('name', 'Full Wedding Documentation')->first();
+        $maternity = Package::where('name', 'Maternity Portrait Session')->first();
+        $newborn = Package::where('name', 'Newborn & Baby Photography')->first();
+        $family = Package::where('name', 'Family & Group Portrait')->first();
+
+        if ($wedding && $maternity && $newborn && $family) {
+            $rules = [
+                [
+                    'name' => 'Wedding to Maternity Promotion (10 Months)',
+                    'source_package_id' => $wedding->id,
+                    'target_package_id' => $maternity->id,
+                    'delay_days' => 300,
+                    'message_template' => "Halo {client_name},\n\nKami dari Photo Studio Team ingin mengucapkan selamat atas peringatan pernikahan Anda yang ke-10 bulan! 🎉\n\nMenyambut kebahagiaan baru dalam hidup Anda, kami menawarkan promo eksklusif untuk sesi foto kehamilan (*{target_package}*) dengan harga spesial *{target_price}*.\n\nMari abadikan momen berharga ini bersama kami. Hubungi CS kami untuk info selengkapnya ya!\n\nSalam hangat,\nPhoto Studio Team",
+                    'is_active' => true,
+                ],
+                [
+                    'name' => 'Maternity to Newborn Promotion (2 Months)',
+                    'source_package_id' => $maternity->id,
+                    'target_package_id' => $newborn->id,
+                    'delay_days' => 60,
+                    'message_template' => "Halo {client_name},\n\nSemoga ibu dan calon bayi selalu dalam keadaan sehat dan bahagia. 💕\n\nMenjelang persalinan, jangan lewatkan kesempatan untuk mengabadikan kelucuan sang buah hati yang baru lahir dengan sesi foto *{target_package}* kami.\n\nDapatkan penawaran khusus hanya seharga *{target_price}* untuk booking hari ini!\n\nSalam hangat,\nPhoto Studio Team",
+                    'is_active' => true,
+                ],
+                [
+                    'name' => 'Newborn to Family Portrait Annual (1 Year)',
+                    'source_package_id' => $newborn->id,
+                    'target_package_id' => $family->id,
+                    'delay_days' => 365,
+                    'message_template' => "Halo {client_name},\n\nWah, tidak terasa sudah satu tahun berlalu sejak sesi foto Newborn sang buah hati tercinta! 🎂👶\n\nSekarang adalah waktu yang tepat untuk melakukan sesi foto keluarga tahunan (*{target_package}*) bersama seluruh keluarga besar Anda seharga *{target_price}*.\n\nMari jadikan momen berkumpul ini abadi. Hubungi kami untuk reservasi slot ya!\n\nSalam hangat,\nPhoto Studio Team",
+                    'is_active' => true,
+                ],
+            ];
+
+            foreach ($rules as $rule) {
+                \App\Models\LifecycleRule::firstOrCreate(['name' => $rule['name']], $rule);
+            }
         }
 
         // Seed default crews

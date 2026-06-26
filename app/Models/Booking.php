@@ -27,12 +27,30 @@ class Booking extends Model
         'paid_amount',
         'location',
         'notes',
+        'is_outdoor',
+        'travel_distance',
+        'fuel_cost',
+        'toll_cost',
+        'accommodation_cost',
+        'travel_surcharge',
+        'is_overnight',
+        'location_latitude',
+        'location_longitude',
     ];
 
     protected $casts = [
         'booking_date' => 'date',
         'total_price' => 'decimal:2',
         'paid_amount' => 'decimal:2',
+        'is_outdoor' => 'boolean',
+        'travel_distance' => 'decimal:2',
+        'fuel_cost' => 'decimal:2',
+        'toll_cost' => 'decimal:2',
+        'accommodation_cost' => 'decimal:2',
+        'travel_surcharge' => 'decimal:2',
+        'is_overnight' => 'boolean',
+        'location_latitude' => 'decimal:7',
+        'location_longitude' => 'decimal:7',
     ];
 
     /**
@@ -89,5 +107,13 @@ class Booking extends Model
     public function photos(): HasMany
     {
         return $this->hasMany(BookingPhoto::class);
+    }
+
+    /**
+     * Get the marketing schedules for this booking.
+     */
+    public function marketingSchedules(): HasMany
+    {
+        return $this->hasMany(MarketingSchedule::class);
     }
 }

@@ -139,6 +139,33 @@ onMounted(() => {
         </div>
 
         <div class="space-y-4">
+            <!-- Booking Summary Panel -->
+            <div class="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2 text-xs">
+                <p class="font-bold text-slate-700 dark:text-slate-350 uppercase tracking-wide">Ringkasan Sesi & Nilai Kontrak</p>
+                <div class="grid grid-cols-2 gap-2 text-slate-600 dark:text-slate-400">
+                    <div>📅 Tanggal: <span class="font-semibold text-slate-800 dark:text-slate-200">{{ new Date(booking.booking_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) }}</span></div>
+                    <div>⏱️ Waktu: <span class="font-semibold text-slate-800 dark:text-slate-200">{{ booking.start_time.substring(0, 5) }} - {{ booking.end_time.substring(0, 5) }} WIB</span></div>
+                    <div class="col-span-2">📍 Lokasi: <span class="font-semibold text-slate-800 dark:text-slate-200">{{ booking.location }}</span></div>
+                    <div>Tipe Sesi: <span class="font-bold text-violet-600 dark:text-violet-400">{{ booking.is_outdoor ? '🌳 Outdoor' : '🏠 Indoor' }}</span></div>
+                    <div>Total Nilai Kontrak: <span class="font-bold text-violet-600 dark:text-violet-400">{{ new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(booking.total_price) }}</span></div>
+                </div>
+                <div v-if="booking.is_outdoor && parseFloat(booking.travel_surcharge) > 0" class="mt-2 border-t border-dashed border-slate-200 dark:border-slate-800 pt-2 space-y-1 text-[11px] text-slate-500 dark:text-slate-400">
+                    <p class="font-semibold text-slate-700 dark:text-slate-300">Rincian Tambahan Perjalanan:</p>
+                    <div class="flex justify-between">
+                        <span>Bensin (PP: {{ booking.travel_distance * 2 }} KM):</span>
+                        <span>{{ new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(booking.fuel_cost) }}</span>
+                    </div>
+                    <div class="flex justify-between" v-if="parseFloat(booking.toll_cost) > 0">
+                        <span>Tol Kru:</span>
+                        <span>{{ new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(booking.toll_cost) }}</span>
+                    </div>
+                    <div class="flex justify-between" v-if="parseFloat(booking.accommodation_cost) > 0">
+                        <span>Akomodasi Kru:</span>
+                        <span>{{ new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(booking.accommodation_cost) }}</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Contract Text Display (Scrollable) -->
             <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">

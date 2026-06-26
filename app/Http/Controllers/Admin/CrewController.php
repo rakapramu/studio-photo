@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Crew;
+use App\Models\Booking;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -11,6 +12,25 @@ use Inertia\Response;
 
 class CrewController extends Controller
 {
+    /**
+     * Display the crew schedule kanban board.
+     */
+    public function kanban(): Response
+    {
+        $crews = Crew::orderBy('name', 'asc')->get();
+        
+        $bookings = Booking::with(['package', 'crews'])
+            ->whereIn('status', ['pending', 'confirmed', 'completed'])
+            ->orderBy('booking_date', 'asc')
+            ->orderBy('start_time', 'asc')
+            ->get();
+
+        return Inertia::render('Admin/Crews/Kanban', [
+            'crews' => $crews,
+            'bookings' => $bookings,
+        ]);
+    }
+
     /**
      * Display a listing of crews.
      */

@@ -44,6 +44,14 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
+            'settings' => [
+                'studio_name' => \App\Models\Setting::getValue('studio_name', 'Studio Photo Raka'),
+                'studio_address' => \App\Models\Setting::getValue('studio_address', 'Bogor, Jawa Barat, Indonesia'),
+                'studio_latitude' => (float) \App\Models\Setting::getValue('studio_latitude', -6.597629),
+                'studio_longitude' => (float) \App\Models\Setting::getValue('studio_longitude', 106.799568),
+                'fuel_cost_per_km' => (float) \App\Models\Setting::getValue('fuel_cost_per_km', 2000),
+                'accommodation_cost_per_night' => (float) \App\Models\Setting::getValue('accommodation_cost_per_night', 500000),
+            ],
         ];
     }
 }
